@@ -54,8 +54,12 @@ function choose(){
   const allCandidates=candidates(tail(last));
   // 사용자 '무릎'에는 게임 전용 규칙으로 '읖질'을 사용한다.
   if(tail(last)==='릎'&&!used.has('읖질')&&dictionary.has('읖질'))return '읖질';
-  const ordinary=allCandidates.filter(w=>!emergencyTails.has(tail(w)));
-  const pool=ordinary.length?ordinary:(emergencyUses<2?allCandidates:[]);
+  // AI가 단어를 내기 전에 사용자가 이어 말할 수 있는 단어가 있는지 검사한다.
+  // 막다른 단어는 다른 안전한 선택지가 있으면 절대 사용하지 않는다.
+  const safeCandidates=allCandidates.filter(w=>availableFollowing(tail(w),w)>0);
+  const playable=safeCandidates.length?safeCandidates:allCandidates;
+  const ordinary=playable.filter(w=>!emergencyTails.has(tail(w)));
+  const pool=ordinary.length?ordinary:(emergencyUses<2?playable:[]);
   if(!pool.length)return null;
   const difficulty=(level-1)/9;
   let best=null,bestScore=-Infinity;
@@ -78,9 +82,20 @@ function choose(){
   return best||pool[0];
 }
 function start(){followingCache.clear();stopTimer();epoch++;used=new Set();last='';mistakes=0;turn=0;emergencyUses=0;challenge=false;challengeTries=0;challengeLetter='';level=+$('level').value;active=false;$('chat').innerHTML='';$('word').value='';add('누가 먼저 시작할까?');$('firstChoice').style.display='flex';status();lock(true);paintTime(15)}
-function chooseFirst(human){$('firstChoice').style.display='none';active=true;add('대답 제한 시간은 15초야. 단어 실수와 시간 초과는 모두 같은 경고로 누적돼. 경고가 총 2회면 즉시 패배야.',false,true);if(human){add('먼저 단어를 입력해 줘!',false,true)}else{const starters=['사과','바나나','기차','바다','학교','도서관','강아지'];const valid=starters.filter(w=>dictionary.has(w));const w=valid[Math.floor(Math.random()*valid.length)]||'사과';last=w;used.add(w);add(w)}status();lock(false);startTimer();$('word').focus()}
+function chooseFirst(human){$('firstChoice').style.display='none';active=true;add('대답 제한 시간은 15초야. 경고가 총 2회면 즉시 패배야. AI가 낸 단어를 모르겠으면 ‘곰돌이야구’를 입력해! AI가 답을 알면 AI 승리, 모르면 사용자 승리야.',false,true);if(human){add('먼저 단어를 입력해 줘!',false,true)}else{const starters=['사과','바나나','기차','바다','학교','도서관','강아지'];const valid=starters.filter(w=>dictionary.has(w));const w=valid[Math.floor(Math.random()*valid.length)]||'사과';last=w;used.add(w);add(w)}status();lock(false);startTimer();$('word').focus()}
 
 function play(e){e.preventDefault();if(!active)return;tick();if(!active)return;const w=$('word').value.trim().replace(/\s/g,'');if(!w)return;$('word').value='';stopTimer();add(w,true);lock(true);
+// '곰돌이야구'는 단어가 아니라 사용자가 AI에게 정답을 요구하는 특별 선언이다.
+// AI가 직전에 낸 단어의 마지막 글자로 이어지는 미사용 사전 단어를 실제로 제시해야 승리한다.
+if(!challenge&&w==='곰돌이야구'){
+  if(!last){mistakes++;if(mistakes>=2){end(false,'경고 2회로 패배했어.');return}add('⚠️ AI가 먼저 단어를 낸 뒤에만 곰돌이야구를 선언할 수 있어. 경고 '+mistakes+'/2');status();lock(false);startTimer();return}
+  const options=candidates(tail(last));
+  // 이 검증은 AI가 사용하는 일반 사전 규칙을 그대로 따른다.
+  const proof=options.find(x=>!emergencyTails.has(tail(x)))||(emergencyUses<2?options[0]:null);
+  if(proof){add('알고 있어! 「'+proof+'」(이)야. 곰돌이야구 선언에 답했으니 AI 승리!');end(false,'AI가 「'+tail(last)+'」(으)로 시작하는 사전 단어를 제시했어.');}
+  else{end(true,'곰돌이야구 선언에 AI가 이어지는 단어를 제시하지 못했어. AI 패배!')}
+  return;
+}
 if(challenge){
   const giveUp=['몰라','모름','모르겠어','모르겠다','없어','패스','포기'].includes(w);
   const valid=/^[가-힣]{2,}$/.test(w)&&matchesStart(w,challengeLetter)&&!used.has(w)&&dictionary.has(w);

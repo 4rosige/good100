@@ -105,7 +105,18 @@ if(challenge){
   status();lock(false);startTimer();$('word').focus();return;
 }
 let problem='';if(!/^[가-힣]+$/.test(w))problem='한글 단어만 입력해 줘.';else if(w.length<2)problem='한 글자 단어는 사용할 수 없어. 두 글자 이상 입력해 줘!';else if(last&&!matchesStart(w,tail(last)))problem=`「${validStarts(tail(last)).join(' 또는 ')}」(으)로 시작해야 해.`;else if(used.has(w))problem='한 게임에서 이미 나온 단어야. 중복 경고 1회!';else if(!dictionary.has(w))problem='첨부한 단어 목록에 없는 단어야.';
-if(problem){mistakes++;if(mistakes>=2){end(false,problem+' 단어·시간 경고 합계가 2회가 되어 패배했어.');return}add(`⚠️ ${problem}\n경고 ${mistakes}/2 · 경고가 총 2회면 패배야!`);status();lock(false);startTimer();$('word').focus();return}
+if(problem){mistakes++;if(mistakes>=2){
+  // 단어 오류로 최종 패배했을 때만, 요구되는 시작 글자의 미사용 사전 단어 하나를 알려준다.
+  const expected=last?tail(last):null;
+  let example=null;
+  if(expected){
+    for(const ch of validStarts(expected)){
+      example=(byFirst.get(ch)||[]).find(x=>x.length>=2&&!used.has(x))||null;
+      if(example)break;
+    }
+  }
+  const hint=example?'\n💡 정답 예시: 「'+example+'」 (「'+expected+'」에서 이어지는 단어)':'\n💡 현재 조건에 맞는 미사용 사전 단어를 찾지 못했어.';
+  end(false,problem+' 단어·시간 경고 합계가 2회가 되어 패배했어.'+hint);return}add(`⚠️ ${problem}\n경고 ${mistakes}/2 · 경고가 총 2회면 패배야!`);status();lock(false);startTimer();$('word').focus();return}
 used.add(w);last=w;turn++;followingCache.clear();status();
 if(turn>=milestones[level-1]){end(true,'모르겠어. 내가 졌어.');return}
 let answer=choose();

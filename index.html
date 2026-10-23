@@ -62,33 +62,31 @@ function certTimeout(){stopCertTimer();certificateResult=null;certificateSaved=f
 const CERT_EMAIL_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwjW2eewW1jsbRnWH6Hjv3pfxQA8TlDUGoaIYjIM74BFQlVSqeH-obXZXLhXPeJkS2LpA/exec'; // Apps Script 웹 앱 배포 URL을 입력하세요. 빈 값이면 메일 발송하지 않습니다.
 const certificateNames=new Set(['정태인','정시우','정세아','정영보','이지은','임종숙','사용자']);
 function certTimestamp(d){const p=n=>String(n).padStart(2,'0');return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+p(d.getHours())+p(d.getMinutes())}
+function certDisplayDate(d){return d.getFullYear()+'. '+String(d.getMonth()+1).padStart(2,'0')+'. '+String(d.getDate()).padStart(2,'0')+'. '+(d.getHours()<12?'오전':'오후')+' '+(d.getHours()%12||12)+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');}
 function showCertificate(){
   stopCertTimer();certDeadline=Date.now()+30000;$('certCountdown').textContent='30';
-  certificateResult={level,words:turn,stamp:certTimestamp(new Date()),matchId:crypto.randomUUID?crypto.randomUUID():String(Date.now())};
+  certificateResult={level,words:turn,stamp:certTimestamp(new Date()),displayDate:certDisplayDate(new Date()),matchId:crypto.randomUUID?crypto.randomUUID():String(Date.now())};
   certificateSaved=false;
   $('certComplete').disabled=false;
   $('certName').value='';$('certShade').classList.add('open');drawCertificate();
   certTimer=setInterval(()=>{if(certificateSaved||!certificateResult){stopCertTimer();return}const remain=Math.max(0,Math.ceil((certDeadline-Date.now())/1000));$('certCountdown').textContent=String(remain);if(Date.now()>=certDeadline)certTimeout()},100);
 }
 function drawCertificate(){
- const c=$('certCanvas'),ctx=c.getContext('2d'),r=certificateResult;if(!r)return;
+ const c=$('certCanvas'),x=c.getContext('2d'),r=certificateResult;if(!r)return;
  const name=certificateNames.has($('certName').value)?$('certName').value:'이름 선택 전';
  const W=c.width,H=c.height;
- ctx.fillStyle='#fdfbf5';ctx.fillRect(0,0,W,H);
- ctx.strokeStyle='#173e61';ctx.lineWidth=22;ctx.strokeRect(34,34,W-68,H-68);
- ctx.strokeStyle='#c5a365';ctx.lineWidth=6;ctx.strokeRect(62,62,W-124,H-124);
- ctx.textAlign='center';ctx.textBaseline='middle';
- ctx.fillStyle='#c5a365';ctx.font='bold 38px "Malgun Gothic",sans-serif';ctx.fillText('TOKTOK WORD CHAIN',W/2,167);
- ctx.fillStyle='#183f63';ctx.font='bold 102px "Malgun Gothic",sans-serif';ctx.fillText('끝말잇기 수료증',W/2,295);
- ctx.fillStyle='#6b7781';ctx.font='32px "Malgun Gothic",sans-serif';ctx.fillText('AI 끝말잇기 대결 승리 인증',W/2,365);
- ctx.strokeStyle='#c5a365';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(380,416);ctx.lineTo(1220,416);ctx.stroke();
- ctx.fillStyle='#2c3743';ctx.font='32px "Malgun Gothic",sans-serif';ctx.fillText('수 료 자',W/2,482);
- ctx.fillStyle='#143a5a';ctx.font='bold 86px "Malgun Gothic",sans-serif';ctx.fillText(name,W/2,580);
- ctx.fillStyle='#2d4357';ctx.font='bold 44px "Malgun Gothic",sans-serif';ctx.fillText('승리 단계  ·  '+r.level+'단계',W/2,695);
- if(r.level===10){ctx.font='bold 37px "Malgun Gothic",sans-serif';ctx.fillText('사용한 단어 수  ·  '+r.words+'개',W/2,759)}
- ctx.fillStyle='#556675';ctx.font='29px "Malgun Gothic",sans-serif';ctx.fillText('위 사람은 톡톡 끝말잇기 AI와의 대결에서 승리하였으므로',W/2,847);
- ctx.fillText('이 수료증을 수여합니다.',W/2,890);
- ctx.fillStyle='#183f63';ctx.font='bold 38px Arial,sans-serif';ctx.fillText(r.stamp,W/2,975);
+ // 관리자 수료증의 캔버스 스타일, 글꼴, 크기, 굵기, 배치와 동일하게 구성
+ x.fillStyle='#fffdf6';x.fillRect(0,0,W,H);
+ x.strokeStyle='#24466a';x.lineWidth=20;x.strokeRect(35,35,W-70,H-70);
+ x.strokeStyle='#bba05f';x.lineWidth=5;x.strokeRect(65,65,W-130,H-130);
+ x.textAlign='center';
+ x.fillStyle='#234b70';x.font='bold 96px Malgun Gothic,sans-serif';x.fillText('끝말잇기 수료증',W/2,320);
+ x.font='bold 90px Malgun Gothic,sans-serif';x.fillText(name,W/2,555);
+ x.font='bold 46px Malgun Gothic,sans-serif';
+ x.fillText(r.level+'단계 · '+(r.level===10?'무제한 · 단어 '+r.words+'개':'단어 '+([0,10,25,50,70,90,110,150,200,300][r.level]||r.words)+'개'),W/2,705);
+ x.font='36px Malgun Gothic,sans-serif';x.fillText('톡톡 끝말잇기 AI 대결 승리 인증',W/2,835);
+ // 날짜의 굵기와 글자 크기 역시 관리자와 동일 (bold 없음)
+ x.fillText(r.displayDate,W/2,930);
 }
 function certificateData(){if(!certificateResult||!certificateNames.has($('certName').value)){alert('먼저 수료자 이름을 선택해 줘.');return null}drawCertificate();return $('certCanvas').toDataURL('image/png')}
 function end(win,why){

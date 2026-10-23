@@ -229,7 +229,7 @@ $('certComplete').addEventListener('click',()=>{
   $('certComplete').disabled=true;
   const a=document.createElement('a');
   a.href=data;
-  a.download='톡톡끝말잇기_수료증_'+$('certName').value+'_'+certificateResult.stamp+'.png';
+  a.download='톡톡 끝말잇기 수료증_'+$('certName').value+'_'+certificateResult.level+'단계_'+certificateResult.stamp+'.png';
   document.body.append(a);
   a.click();
   a.remove();

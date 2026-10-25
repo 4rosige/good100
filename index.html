@@ -199,6 +199,24 @@ document.addEventListener('fullscreenchange',()=>{
   }
 });
 
+// 화면 이탈 감지: 게임 진행 중에만 적용하고, 한 번의 이탈로 즉시 패배 처리.
+function failOnScreenExit(reason){
+  if(!fullscreenMatch||matchEnded)return;
+  $('firstChoice').style.display='none';
+  if(!active)active=true; // 선공 선택 대기 중에도 시작한 게임으로 간주
+  end(false,'게임 화면을 이탈하여 패배했습니다. ('+reason+')');
+}
+window.addEventListener('blur',()=>failOnScreenExit('다른 창으로 전환'));
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)failOnScreenExit('게임 탭이 숨겨짐');
+});
+window.addEventListener('pagehide',()=>failOnScreenExit('페이지 이탈'));
+// 브라우저 F11 전체화면 해제는 Fullscreen API와 별개일 수 있으므로 크기도 감시.
+let screenBaseline=null;
+window.addEventListener('resize',()=>{
+  if(!fullscreenMatch||matchEnded)return;
+  if(!document.fullscreenElement){failOnScreenExit('전체화면 해제');return;}
+});
 // Apps Script는 브라우저 파일에서도 전송할 수 있도록 숨겨진 폼으로 요청한다.
 // 수신 이메일은 서버에서 고정되며, 서버가 요청 ID를 기록하여 중복 전송을 막는다.
 function submitCertificateEmail(data, r, name){

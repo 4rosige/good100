@@ -65,6 +65,7 @@ function tick(){if(!active||!deadline)return;const t=Math.max(0,(deadline-perfor
  end(false,'단어·시간 경고 합계가 2회가 되어 패배했어.'+hint);return} add(`⏰ 시간 초과! 경고 ${mistakes}/2. 다시 ${timeLimit()}초 줄게.`);status();startTimer();$('word').focus()}}
 function startTimer(){stopTimer();if(!active)return;paintTime(timeLimit());deadline=performance.now()+timeLimit()*1000;timerId=setInterval(tick,80)}
 // 승리 순간의 정보는 한 번만 확정하고, 이름만 사용자가 선택한다.
+let certificateOutcome="win";
 let certificateResult=null;
 let certificateSaved=false;
 let certDeadline=0, certTimer=null;
@@ -76,7 +77,7 @@ function certTimestamp(d){const p=n=>String(n).padStart(2,'0');return ''+d.getFu
 function certDisplayDate(d){return d.getFullYear()+'. '+String(d.getMonth()+1).padStart(2,'0')+'. '+String(d.getDate()).padStart(2,'0')+'. '+(d.getHours()<12?'오전':'오후')+' '+(d.getHours()%12||12)+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');}
 function showCertificate(){
   stopCertTimer();certDeadline=Date.now()+30000;$('certCountdown').textContent='30';
-  certificateResult={level,words:turn,stamp:certTimestamp(new Date()),displayDate:certDisplayDate(new Date()),matchId:crypto.randomUUID?crypto.randomUUID():String(Date.now())};
+  certificateResult={level,words:turn,stamp:certTimestamp(new Date()),displayDate:certDisplayDate(new Date()),outcome:certificateOutcome,matchId:crypto.randomUUID?crypto.randomUUID():String(Date.now())};
   certificateSaved=false;
   $('certComplete').disabled=false;
   $('certName').value='';$('certShade').classList.add('open');drawCertificate();
@@ -94,8 +95,8 @@ function drawCertificate(){
  x.fillStyle='#234b70';x.font='bold 96px Malgun Gothic,sans-serif';x.fillText('끝말잇기 수료증',W/2,320);
  x.font='bold 90px Malgun Gothic,sans-serif';x.fillText(name,W/2,555);
  x.font='bold 46px Malgun Gothic,sans-serif';
- x.fillText(r.level===11?'고수단계 · '+r.words+'개에서 패배':r.level+'단계 · 단어 '+r.words+'개',W/2,705);
- x.font='36px Malgun Gothic,sans-serif';x.fillText(r.level===11?'톡톡 끝말잇기 고수 도전 인증':'톡톡 끝말잇기 AI 대결 승리 인증',W/2,835);
+ x.fillText(r.level===11?'고수단계 · '+r.words+'개에서 '+(r.outcome==='win'?'승리':'패배'):r.level+'단계 · 단어 '+r.words+'개',W/2,705);
+ x.font='36px Malgun Gothic,sans-serif';x.fillText(r.level===11?(r.outcome==='win'?'톡톡 끝말잇기 고수 승리 인증':'톡톡 끝말잇기 고수 도전 인증'):'톡톡 끝말잇기 AI 대결 승리 인증',W/2,835);
  // 날짜의 굵기와 글자 크기 역시 관리자와 동일 (bold 없음)
  x.fillText(r.displayDate,W/2,930);
 }
@@ -104,7 +105,7 @@ function end(win,why){
  if(matchEnded)return; // 승패는 한 게임당 단 한 번만 확정
  matchEnded=true;
  fullscreenMatch=false; // 종료 후 전체화면 해제는 추가 패배가 아님
- stopTimer();active=false;lock(false);add(`${win?'🎉 사용자 승리!':'😢 사용자 패배! AI 승리!'}\n${why}`);add('새 게임 버튼으로 다시 도전해!');status();paintTime(0);if(win || (level===11 && turn>=501))showCertificate()}
+ stopTimer();active=false;lock(false);add(`${win?'🎉 사용자 승리!':'😢 사용자 패배! AI 승리!'}\n${why}`);add('새 게임 버튼으로 다시 도전해!');status();paintTime(0);certificateOutcome=win?'win':'loss';if(win || (level===11 && turn>=501))showCertificate()}
 function candidates(letter){
  const out=[];
  for(const c of validStarts(letter))for(const w of (byFirst.get(c)||[])){
@@ -244,7 +245,7 @@ function submitCertificateEmail(data, r, name){
   const fields={
     requestId:'cert_'+r.stamp+'_'+r.level+'_'+r.words+'_'+(r.matchId||''),
     name:name,level:String(r.level),words:String(r.words),stamp:r.stamp,
-    image:data.split(',')[1]
+    outcome:r.outcome||'win',image:data.split(',')[1]
   };
   for(const [k,v] of Object.entries(fields)){
     const input=document.createElement('input');input.type='hidden';input.name=k;input.value=v;form.append(input);
@@ -263,7 +264,7 @@ $('certComplete').addEventListener('click',()=>{
   $('certComplete').disabled=true;
   const a=document.createElement('a');
   a.href=data;
-  a.download='톡톡 끝말잇기 수료증_'+$('certName').value+'_'+(certificateResult.level===11?'고수단계_'+certificateResult.words+'개에서패배':certificateResult.level+'단계')+'_'+certificateResult.stamp+'.png';
+  a.download='톡톡 끝말잇기 수료증_'+$('certName').value+'_'+(certificateResult.level===11?'고수단계_'+certificateResult.words+'개에서'+(certificateResult.outcome==='win'?'승리':'패배'):certificateResult.level+'단계')+'_'+certificateResult.stamp+'.png';
   document.body.append(a);
   a.click();
   a.remove();
